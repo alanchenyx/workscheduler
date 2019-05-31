@@ -1,0 +1,7 @@
+The total number of hours required by clients are: 1105
+The number of hours left is: 109
+below is the works not finished, displayed in client name and hours left
+telstra 15
+kogan 40
+vodafone 34
+google 20
