@@ -4,6 +4,8 @@ class Client:
         self.name = name
         self.hour = hour
         self.done = False
+        self.initHour = hour
+        self.relatedTeammate = []
 
 
     def getName(self):
@@ -20,6 +22,15 @@ class Client:
 
     def getDoneStatus(self):
         return self.done
+
+    def getinitHour(self):
+        return self.initHour
+
+    def addRelatedTeammate(self, teammate):
+        self.relatedTeammate.append(teammate)
+
+    def getRelatedTeammate(self):
+        return self.relatedTeammate
 
 
 clients = []
@@ -42,6 +53,10 @@ def printAllClients():
     for client in clients:
         print(client.getName(), client.getHour())
 
+def printSortedClients():
+    for client in sortedClients:
+        print(client.getName(), client.getHour())
+
 
 def sortClients():
     for client in reversed(sorted(clients, key=lambda x: x.hour)):
@@ -52,8 +67,15 @@ def sortClients():
     #     print(client.getName())
     #     print(client.getHour())
 
+def updateClientList(list):
+    clients.clear()
+    sortedClients.clear()
+    initialiseClients(list)
+    sortClients()
+
 def getSortedClients():
     return sortedClients
 
 def getAllClients():
     return clients
+

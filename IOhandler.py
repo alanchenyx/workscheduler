@@ -1,9 +1,5 @@
 #load clients.csv and teammates csv
-
-import csv
-
 import client
-import main
 import teammate
 
 

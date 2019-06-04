@@ -1,11 +1,10 @@
 import pprint
 from operator import attrgetter
-import client
-
 
 class Teammate:
 
     def __init__(self, name, hour, day):
+
         self.name = name
         self.hour = hour
         self.day = day
@@ -22,7 +21,14 @@ class Teammate:
         return self.day
 
     def addTask(self, dayNum, workHour, client):
-        self.schedule.append({'day': dayNum, 'hour': workHour, 'client': client})
+        self.schedule.append({'day': dayNum, 'hour': workHour, 'client': client.getName()})
+        tList = client.getRelatedTeammate()
+        if self.getName() not in tList:
+            client.addRelatedTeammate(self.getName())
+
+
+    def clearTask(self):
+        self.schedule.clear()
 
     def getSchedule(self):
         return self.schedule
@@ -85,7 +91,19 @@ def printTeammates():
     for teammate in teammates:
         print(teammate.getName())
 
+def teammateList():
+    result = []
+    for teammate in teammates:
+        result.append(teammate.getName())
+    return result
 
+def clearAllTasks():
+    for teammate in teammates:
+        teammate.clearTask()
+
+def updateTeammates(newlist):
+    teammates.clear()
+    initialiseTeammates(newlist)
 
 def fillschedule(clients):
     #algorithm1, let one teammate deal with one client if not possible, give the work to second teammate
@@ -143,16 +161,16 @@ def fillschedule(clients):
                         workHour = availableHour
                     if cHour < availableHour:
                         workHour = cHour
-                    teammate.addTask(nextAvailableDay, workHour, client.getName())
+                    teammate.addTask(nextAvailableDay, workHour, client)
 
-                    print('adding task: {day: ' + str(nextAvailableDay) + ' workHour: ' + str(
-                        workHour) + ' client: ' + client.getName() + '}')
+                    # print('adding task: {day: ' + str(nextAvailableDay) + ' workHour: ' + str(
+                    #     workHour) + ' client: ' + client.getName() + '}')
 
                     teammate.setAvailableHourLeft(tHourLeft - workHour)
                     cHour = cHour - workHour
                     tHourLeft = tHourLeft - workHour
                     client.setHour(cHour)
-                    print('client ' + client.getName() + ' has ' + str(client.getHour()) + ' hours left')
+                    # print('client ' + client.getName() + ' has ' + str(client.getHour()) + ' hours left')
 
         teammates.sort(key=attrgetter('availableHourLeft'), reverse=True)
         while cHour > 0:
@@ -169,16 +187,16 @@ def fillschedule(clients):
                     if cHour < availableHour:
                         workHour = cHour
 
-                    teammate.addTask(nextAvailableDay, workHour, client.getName())
+                    teammate.addTask(nextAvailableDay, workHour, client)
 
-                    print('adding task: {day: ' + str(nextAvailableDay) + ' workHour: ' + str(
-                        workHour) + ' client: ' + client.getName() + '}')
+                    # print('adding task: {day: ' + str(nextAvailableDay) + ' workHour: ' + str(
+                    #     workHour) + ' client: ' + client.getName() + '}')
 
                     teammate.setAvailableHourLeft(tHourLeft - workHour)
                     cHour = cHour - workHour
                     tHourLeft = tHourLeft - workHour
                     client.setHour(cHour)
-                    print('client ' + client.getName() + ' has ' + str(client.getHour()) + ' hours left')
+                    # print('client ' + client.getName() + ' has ' + str(client.getHour()) + ' hours left')
 
 
 
