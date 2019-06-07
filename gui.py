@@ -1,3 +1,5 @@
+import datetime
+
 import calendar
 import pprint
 import sys
@@ -14,7 +16,7 @@ import teammate
 clientsData = []
 teammatesData = []
 sortedClients = []
-
+displayTeammateIndex = 0
 
 class App(QWidget):
 
@@ -36,18 +38,29 @@ class App(QWidget):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         self.createClientTable()
+        self.createTeammateNameQlabal()
+        self.createSummaryQlable()
         self.createTeammateTable()
         self.createOutputTable()
         self.createRelationshipTable()
 
-        self.runbutton = QPushButton('Start schedule', self)
-        self.runbutton.clicked.connect(self.clickMethod)
-        self.runbutton.resize(100, 32)
-        self.runbutton.move(500, 500)
+        #start schedule button
+        self.runButton = QPushButton('Start schedule', self)
+        self.runButton.clicked.connect(self.clickToSchedule)
+        self.runButton.resize(100, 32)
+        self.runButton.move(500, 500)
+
+        self.nextTeammateButton = QPushButton('Next Teammate', self)
+        self.nextTeammateButton.clicked.connect(self.clickToNextTeammate)
+        self.nextTeammateButton.resize(200, 60)
+        self.nextTeammateButton.move(0,0)
+
+
 
         # Add grid layout, add table to grid layout
         self.createGridLayout()
         windowLayout = QVBoxLayout()
+
         windowLayout.addWidget(self.horizontalGroupBox)
         self.setLayout(windowLayout)
 
@@ -58,26 +71,37 @@ class App(QWidget):
 
     def createGridLayout(self):
         self.horizontalGroupBox = QGroupBox()
+
         layout = QGridLayout()
-        layout.setColumnStretch(0, 10)
-        layout.setColumnStretch(1, 15)
+        layout.setColumnStretch(0, 15)
+        layout.setColumnStretch(1, 20)
         layout.setColumnStretch(2, 20)
 
         layout.setRowStretch(0, 10)
         layout.setRowStretch(1, 20)
 
-        layout.addWidget(self.clientTableWidget, 0, 0, )
+        layout.addWidget(self.clientTableWidget, 0, 0)
         layout.addWidget(self.teammateTableWidget, 0, 1)
         layout.addWidget(self.outputtableWidget, 1,0,1,40)
-        layout.addWidget(self.runbutton, 2, 1)
+        layout.addWidget(self.runButton, 2, 2)
         layout.addWidget(self.relationshipTableWidget,0,2)
-
+        layout.addWidget(self.nextTeammateButton,2,1)
+        layout.addWidget(self.teammateName, 2, 0)
+        layout.addWidget(self.summary, 1, 3)
         self.horizontalGroupBox.setLayout(layout)
+
+    def createTeammateNameQlabal(self):
+        self.teammateName = QLabel('Displaying schedule: ')
+
+    def createSummaryQlable(self):
+        self.summary = QLabel('Result Summary')
+
 
     def createClientTable(self):
         client_list = client.getAllClients()
         # Create table
         self.clientTableWidget = QTableWidget()
+
         self.clientTableWidget.setRowCount(100)
         self.clientTableWidget.setColumnCount(2)
         self.clientTableWidget.setHorizontalHeaderLabels(['Client_Name','Client_Hour'])
@@ -85,7 +109,7 @@ class App(QWidget):
         for c in client.clients:
 
             clientName = c.getName()
-            clientHour = str(c.getinitHour())
+            clientHour = str(c.getInitHour())
             self.clientTableWidget.setItem(client_id, 0, QTableWidgetItem(clientName))
             self.clientTableWidget.setItem(client_id, 1, QTableWidgetItem(clientHour))
             client_id += 1
@@ -98,10 +122,13 @@ class App(QWidget):
     def createRelationshipTable(self):
 
         self.relationshipTableWidget = QTableWidget()
+
         self.relationshipTableWidget.setRowCount(100)
         self.relationshipTableWidget.setColumnCount(2)
         self.relationshipTableWidget.setHorizontalHeaderLabels(['Client_Name','Responsible Teammate'])
         self.relationshipTableWidget.move(0, 0)
+        self.relationshipTableWidget.horizontalHeader().setStretchLastSection(True)
+
 
 
     def createTeammateTable(self):
@@ -129,28 +156,15 @@ class App(QWidget):
 
     def createOutputTable(self):
         # Create table
-        days = calendar.nextMonthCalendar()
-
+        weeks = 53
+        weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday']
 
 
         self.outputtableWidget = QTableWidget()
-        self.outputtableWidget.setRowCount(len(days))
+        self.outputtableWidget.setRowCount(weeks)
+        self.outputtableWidget.setColumnCount(len(weekdays))
 
-        teammateNum = len(teammate.teammates)
-        self.outputtableWidget.setColumnCount(teammateNum)
-
-
-        teammateNames = teammate.teammateList()
-        self.outputtableWidget.setHorizontalHeaderLabels(
-            teammateNames)
-
-        weekdays = []
-        for day in days:
-            label = str(day.day) + '/' + str(day.month) + '/' + str(day.year) + ' ' + calendar.getWeekday(day)
-            weekdays.append(label)
-
-        self.outputtableWidget.setVerticalHeaderLabels(weekdays)
-
+        self.outputtableWidget.setHorizontalHeaderLabels(weekdays)
         self.outputtableWidget.move(0, 0)
 
 
@@ -160,11 +174,18 @@ class App(QWidget):
         for currentQTableWidgetItem in self.clientTableWidget.selectedItems():
             print(currentQTableWidgetItem.row(), currentQTableWidgetItem.column(), currentQTableWidgetItem.text())
 
+    def clickToNextTeammate(self):
+        self.clearOutput()
+        increaseDisplayIndex()
+        self.teammateName.setText('Displaying schedule: ' + teammate.teammates[displayTeammateIndex].getName())
+        self.scheduleTeammate(displayTeammateIndex)
+        return
 
 
 
-    def clickMethod(self):
 
+    def clickToSchedule(self):
+        self.clearOutput()
         updateClients = self.updateClientData()
         updateTeammates = self.updateTeammateData()
         # pprint.pprint(updateClients)
@@ -174,15 +195,24 @@ class App(QWidget):
         # client.printSortedClients()
 
         teammate.updateTeammates(updateTeammates)
+
+        cTotal = client.totalwork()
+        tTotal = teammate.totalTeammatesHours()
+        initialiseScaling(cTotal,tTotal)
+        self.summary.setText('Result Summary: \n'
+                             'Total hours required by clients: ' + str(cTotal) + '\n'
+                             'Total hours avaialble by Teammates: ' + str(tTotal) + '\n'
+                             'Appling scaling factor of: '+str(tTotal/cTotal))
         teammate.fillschedule(client.getSortedClients())
 
-        newteammatenames = []
 
-        for t in teammate.teammates:
-            newteammatenames.append(t.getName())
-
-        self.outputtableWidget.setColumnCount(len(newteammatenames))
-        self.outputtableWidget.setHorizontalHeaderLabels(newteammatenames)
+        # newteammatenames = []
+        #
+        # for t in teammate.teammates:
+        #     newteammatenames.append(t.getName())
+        #
+        # self.outputtableWidget.setColumnCount(len(newteammatenames))
+        # self.outputtableWidget.setHorizontalHeaderLabels(newteammatenames)
 
 
         #filling schedule in the output table (algorithm1)
@@ -219,49 +249,53 @@ class App(QWidget):
 
         # filling schedule in the output table (algorithm2)
 
-        days = calendar.nextMonthCalendar()
+        # days = calendar.nextMonthCalendar()
+        #
+        # teammateindex = 0
+        # for t in teammate.teammates:
+        #
+        #     days = calendar.nextMonthCalendar()
+        #     tasks = t.getSchedule()
+        #     numWorkdays = t.getDay()
+        #
+        #     freedays = [5,6]
+        #     while numWorkdays < 5:
+        #         freedays.append(numWorkdays)
+        #         numWorkdays+=1
+        #
+        #     dayindex = 0
+        #     taskindex = 0
+        #     for day in days:
+        #
+        #         #check is freeday or not first
+        #
+        #         if day.weekday() in freedays:
+        #             self.outputtableWidget.setItem(dayindex, teammateindex, QTableWidgetItem(''))
+        #             dayindex += 1
+        #             continue
+        #
+        #
+        #
+                # ouput = ''
+                # taskOnDay = t.getTasksbyDay(taskindex+1)
+                # if len(taskOnDay) == 1:
+                #     for task in taskOnDay:
+                #         ouput = ouput + task['client'] + ' ' + str(task['hour'])
+                # if len(taskOnDay) > 1:
+                #     for task in taskOnDay:
+                #         ouput = ouput + '(' + task['client'] + ' ' + str(task['hour']) + ') '
+        #
+        #         self.outputtableWidget.setItem(dayindex, teammateindex, QTableWidgetItem(ouput))
+        #         dayindex +=1
+        #         taskindex +=1
+        #     teammateindex +=1
+        #
 
-        teammateindex = 0
-        for t in teammate.teammates:
+        # filling schedule in the output table (algorithm3) for one teammate, row = weekdays, column = week number
 
-            days = calendar.nextMonthCalendar()
-            tasks = t.getSchedule()
-            numWorkdays = t.getDay()
-
-            freedays = [5,6]
-            while numWorkdays < 5:
-                freedays.append(numWorkdays)
-                numWorkdays+=1
-
-            dayindex = 0
-            taskindex = 0
-            for day in days:
-
-                #check is freeday or not first
-
-                if day.weekday() in freedays:
-                    self.outputtableWidget.setItem(dayindex, teammateindex, QTableWidgetItem(''))
-                    dayindex += 1
-                    continue
-
-
-
-                ouput = ''
-                taskOnDay = t.getTasksbyDay(taskindex+1)
-                if len(taskOnDay) == 1:
-                    for task in taskOnDay:
-                        ouput = ouput + task['client'] + ' ' + str(task['hour'])
-                if len(taskOnDay) > 1:
-                    for task in taskOnDay:
-                        ouput = ouput + '(' + task['client'] + ' ' + str(task['hour']) + ') '
-
-                self.outputtableWidget.setItem(dayindex, teammateindex, QTableWidgetItem(ouput))
-                dayindex +=1
-                taskindex +=1
-            teammateindex +=1
-
-
-
+        self.scheduleTeammate(displayTeammateIndex)
+        self.teammateName.setText(
+            'Displaying schedule: ' + teammate.teammates[displayTeammateIndex].getName())
 
 
 
@@ -280,8 +314,7 @@ class App(QWidget):
             client_id += 1
 
 
-        teammate.printTasks()
-
+        # teammate.printTasks()
 
 
     def updateClientData(self):
@@ -311,20 +344,77 @@ class App(QWidget):
                 pass
         return updateTeammates
 
+    def clearOutput(self):
+        for row in range(5):
+            for column in range(53):
+                self.outputtableWidget.setItem(column,row,QTableWidgetItem(''))
+
+    def scheduleTeammate(self, teammateIndex):
+        startingDate = calendar.getWorkDaysNextYear()[0]
+        tasks = teammate.teammates[teammateIndex].getSchedule()
+        tasks.sort(key=lambda x: x['day'])
+
+        horizonIndex = 0
+        verticalIndex = 0
+        previousDay = startingDate
+        for task in tasks:
+            # print(str(task['day']) +task['client']+str(task['hour']))
+            dayInterval = 0
+
+            date = task['day']
+            # print(date)
+            # print(previousDay)
+            dayInterval = (date - previousDay).days
+            horizonIndex = horizonIndex + dayInterval
+            if horizonIndex > 6:
+                verticalIndex += horizonIndex // 7
+                horizonIndex = horizonIndex % 7
+
+            previousTask = self.outputtableWidget.item(verticalIndex, horizonIndex).text()
+            output = ''
+            output = previousTask + ' ' + output + task['client'] + ' ' + str(task['hour'])
+            # print(task)
+            # print(verticalIndex,horizonIndex)
+
+            self.outputtableWidget.setItem(verticalIndex, horizonIndex, QTableWidgetItem(output))
+            previousDay = date
+
+def increaseDisplayIndex():
+    global displayTeammateIndex
+    indexrange = len(teammatesData)
+    displayTeammateIndex += 1
+    if displayTeammateIndex > indexrange-1:
+        displayTeammateIndex = 0
+
+def initialiseScaling(cHour,tHour):
+    scaleFactor = tHour/cHour
+    if scaleFactor < 1:
+        for c in client.clients:
+            initialClientHour = c.getHour()
+            hourAfterScale = int(initialClientHour*scaleFactor)
+            c.setHour(hourAfterScale)
+            c.setScaledHourForYear(hourAfterScale)
+
 if __name__ == '__main__':
+
+    print(calendar.getNumWorkdaysPerMonth())
 
     clientsData = IOhandler.loadcsv('clients.csv')
     teammatesData = IOhandler.loadcsv('teammates.csv')
 
     client.initialiseClients(clientsData)
-    client.totalWork = client.totalwork()
-    client.sortClients()
 
+
+    totalClientHours = client.totalwork()
 
     teammate.initialiseTeammates(teammatesData)
+    totalTeammateHours = teammate.totalTeammatesHours()
 
+    initialiseScaling(totalClientHours,totalTeammateHours)
+    client.sortClients()
+    # for c in client.sortedClients:
+    #     print(c.getHour())
 
     app = QApplication(sys.argv)
     ex = App()
     sys.exit(app.exec_())
-
